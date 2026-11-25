@@ -1,0 +1,86 @@
+[
+  {
+    "id": "olympic-paddington",
+    "name": "Olympic Hotel Paddington",
+    "booking_title": "Olympic Paddington Budget Hotel - across Allianz Stadium",
+    "booking_url": "https://www.booking.com/hotel/au/olympic-paddington.html",
+    "mirror_url": "https://www.hotels.com/ho4051630368/",
+    "cc1": "au",
+    "pagename": "olympic-paddington",
+    "address": "308 Moore Park Road, Paddington, Sydney NSW 2021",
+    "booking_overall_rating": 6.4,
+    "booking_total_reviews": 128,
+    "wifi_rating": 8.3,
+    "subscores": {
+      "cleanliness": 8.0,
+      "amenities": 7.6,
+      "staff": 7.6,
+      "location": 8.4
+    },
+    "operational_notes": "Adults-only budget rooms across from Allianz Stadium; virtual front desk; 3:00 PM check-in / 10:00 AM check-out."
+  },
+  {
+    "id": "potts-point",
+    "name": "Potts Point",
+    "booking_title": "Azzurro Pod Hotel Potts Point - Near Kings Cross Station",
+    "booking_url": "https://www.booking.com/hotel/au/venus-potts-point-sydney.html",
+    "mirror_url": "https://en.planetofhotels.com/australia/sydney/venus-potts-point-female-only-hostel-long-stay-negotiable",
+    "cc1": "au",
+    "pagename": "venus-potts-point-sydney",
+    "address": "141-143 Victoria Street, Potts Point, Sydney NSW 2011",
+    "booking_overall_rating": 6.3,
+    "booking_total_reviews": 2394,
+    "wifi_rating": 8.3,
+    "subscores": {
+      "cleanliness": 6.8,
+      "location": 8.4,
+      "value": 7.2,
+      "facilities": 6.7,
+      "comfort": 6.7,
+      "staff": 7.5
+    },
+    "operational_notes": "No elevator (stairs only); virtual reception; $10 towel rental; 3.5% credit card surcharge; complimentary dinner 7:00-8:00 PM."
+  },
+  {
+    "id": "central-sydney",
+    "name": "Central Sydney",
+    "booking_title": "Azzurro Pod Hotel Central Sydney - Near Central Station",
+    "booking_url": "https://www.booking.com/hotel/au/venus-surry-hills.html",
+    "mirror_url": "https://www.trip.com/hotels/sydney-hotel-detail-108803449/azzurro-pod-hotel-central-sydney/review.html",
+    "cc1": "au",
+    "pagename": "venus-surry-hills",
+    "address": "90 Wentworth Avenue, Surry Hills, Sydney NSW 2010",
+    "booking_overall_rating": 6.6,
+    "booking_total_reviews": 2450,
+    "wifi_rating": 9.0,
+    "subscores": {
+      "cleanliness": 6.5,
+      "service": 6.8,
+      "amenities": 6.1,
+      "location": 7.5
+    },
+    "operational_notes": "Near Central Station; no elevator; virtual reception; $10 towel/padlock purchase; complimentary dinner 7:00-8:00 PM."
+  },
+  {
+    "id": "darling-harbour",
+    "name": "Darling Harbour",
+    "booking_title": "Azzurro Pod Hotel Darling Harbour - Near Convention Center",
+    "booking_url": "https://www.booking.com/hotel/au/chateau-de-venus.html",
+    "mirror_url": "https://en.planetofhotels.com/australia/sydney/chateau-de-venus",
+    "cc1": "au",
+    "pagename": "chateau-de-venus",
+    "address": "22 Allen Street, Pyrmont / Sydney CBD, Sydney NSW 2009",
+    "booking_overall_rating": 6.6,
+    "booking_total_reviews": 4310,
+    "wifi_rating": 8.3,
+    "subscores": {
+      "cleanliness": 6.9,
+      "location": 8.2,
+      "value": 7.5,
+      "facilities": 6.8,
+      "comfort": 6.8,
+      "staff": 7.6
+    },
+    "operational_notes": "Near ICC Sydney & Darling Harbour; no elevator; virtual reception; $10 towel/padlock; complimentary dinner 6:30-7:45 PM."
+  }
+]

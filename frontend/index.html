@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Azzurro Hotels — Booking.com Review Insights Dashboard</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased">
+  <!-- Top Header -->
+  <header class="bg-[#0F2540] text-white border-b border-slate-800 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-300 font-bold text-lg">
+          A
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-semibold tracking-tight leading-tight">
+            Azzurro Hotels — Review Insights Dashboard
+          </h1>
+          <p class="text-xs text-slate-300">
+            Operations Guest Sentiment Monitor · 4 Sydney Properties
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="openScrapeModalBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span>Update Reviews</span>
+        </button>
+        <button id="aiClassifyBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs transition disabled:opacity-50">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+          <span id="aiClassifyBtnText">AI Classify (Gemini)</span>
+        </button>
+        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 cursor-pointer transition">
+          <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+          <span>Import JSON</span>
+          <input id="importJsonInput" type="file" accept=".json" class="hidden" />
+        </label>
+        <button id="exportCsvBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 transition">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          <span>Export CSV</span>
+        </button>
+        <button id="openMethodologyBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition">
+          <i data-lucide="info" class="w-3.5 h-3.5"></i>
+          <span>Methodology</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden max-w-sm bg-slate-900 text-white text-sm px-4 py-3 rounded-xl shadow-lg border border-slate-700"></div>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- Filter Bar -->
+    <section class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+        <div>
+          <label for="propertyFilter" class="block text-xs font-semibold text-slate-600 mb-1">Property</label>
+          <select id="propertyFilter" class="w-full text-sm rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="all">All 4 Properties</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="datePresetFilter" class="block text-xs font-semibold text-slate-600 mb-1">Timeframe</label>
+          <select id="datePresetFilter" class="w-full text-sm rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="all">All Collected Dates</option>
+            <option value="latest_week">Latest Active Week (7d)</option>
+            <option value="last_30">Last 30 Days (from latest)</option>
+            <option value="last_90">Last 90 Days (from latest)</option>
+            <option value="custom">Custom Date Range</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="startDateInput" class="block text-xs font-semibold text-slate-600 mb-1">Start Date</label>
+          <input id="startDateInput" type="date" class="w-full text-sm rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+        </div>
+
+        <div>
+          <label for="endDateInput" class="block text-xs font-semibold text-slate-600 mb-1">End Date</label>
+          <input id="endDateInput" type="date" class="w-full text-sm rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+        </div>
+
+        <div>
+          <label for="topicFilter" class="block text-xs font-semibold text-slate-600 mb-1">Operational Topic</label>
+          <select id="topicFilter" class="w-full text-sm rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="all">All 8 Topics</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="searchInput" class="block text-xs font-semibold text-slate-600 mb-1">Search Reviews</label>
+          <div class="relative">
+            <input id="searchInput" type="text" placeholder="e.g. bathroom, keypad, AC..." class="w-full text-sm rounded-lg border border-slate-300 bg-white pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-1.5" id="sentimentPills">
+          <span class="text-xs font-medium text-slate-500 mr-1">Sentiment:</span>
+          <button type="button" data-sentiment="all" class="sentiment-pill px-3 py-1 rounded-full text-xs font-medium bg-[#0F2540] text-white transition">All</button>
+          <button type="button" data-sentiment="positive" class="sentiment-pill px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-emerald-50 transition">Positive (7.0+)</button>
+          <button type="button" data-sentiment="neutral" class="sentiment-pill px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-amber-50 transition">Neutral (5.0–6.9)</button>
+          <button type="button" data-sentiment="negative" class="sentiment-pill px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-rose-50 transition">Negative (&lt;5.0)</button>
+        </div>
+
+        <div class="flex items-center gap-3 text-xs text-slate-500">
+          <span id="activeFilterSummary">Showing all reviews</span>
+          <button id="resetFiltersBtn" type="button" class="text-sky-700 hover:text-sky-900 font-medium underline">Reset filters</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- KPI Summary Row -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Current Week Avg</span>
+          <span class="p-1.5 rounded-lg bg-sky-50 text-sky-700"><i data-lucide="star" class="w-4 h-4"></i></span>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpiCurrWeekAvg" class="text-3xl font-bold text-slate-900">—</span>
+          <span class="text-xs font-medium text-slate-500">/ 10</span>
+        </div>
+        <p id="kpiCurrWeekWindow" class="mt-1 text-xs text-slate-500">Latest active 7-day window</p>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">vs. Previous Week</span>
+          <span class="p-1.5 rounded-lg bg-indigo-50 text-indigo-700"><i data-lucide="trending-up" class="w-4 h-4"></i></span>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpiWowDelta" class="text-3xl font-bold text-slate-900">—</span>
+          <span id="kpiWowBadge" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">WoW</span>
+        </div>
+        <p id="kpiPrevWeekDetail" class="mt-1 text-xs text-slate-500">Previous 7-day baseline</p>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Negative Review Rate</span>
+          <span class="p-1.5 rounded-lg bg-rose-50 text-rose-700"><i data-lucide="alert-triangle" class="w-4 h-4"></i></span>
+        </div>
+        <div class="mt-2 flex items-baseline gap-2">
+          <span id="kpiNegRate" class="text-3xl font-bold text-rose-600">—</span>
+          <span id="kpiPeriodAvg" class="text-xs font-medium text-slate-500">Period avg: —</span>
+        </div>
+        <p id="kpiSentimentSplit" class="mt-1 text-xs text-slate-500">Positive / Neutral / Negative split</p>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Top Recurring Issue</span>
+          <span class="p-1.5 rounded-lg bg-amber-50 text-amber-700"><i data-lucide="wrench" class="w-4 h-4"></i></span>
+        </div>
+        <div class="mt-2">
+          <span id="kpiTopIssue" class="text-xl font-bold text-slate-900 leading-tight block">—</span>
+        </div>
+        <p id="kpiTopIssueDetail" class="mt-1 text-xs text-slate-500">Share of negative reviews</p>
+      </div>
+    </section>
+
+    <!-- Operational Insights Callouts -->
+    <section class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="sparkles" class="w-4 h-4 text-sky-600"></i>
+          <h2 class="text-sm font-semibold text-slate-900">Key Operational Insights</h2>
+        </div>
+        <span class="text-xs text-slate-500">Auto-generated from active filter</span>
+      </div>
+      <div id="insightsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3"></div>
+    </section>
+
+    <!-- Charts Row: Property Breakdown + Positive/Negative Trends -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">Property-by-Property Rating Breakdown</h2>
+            <p class="text-xs text-slate-500">Collected sample average vs. live Booking.com overall score</p>
+          </div>
+        </div>
+        <div class="relative h-64">
+          <canvas id="propertyChart"></canvas>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">Positive vs. Negative Review Trends</h2>
+            <p class="text-xs text-slate-500">Monthly review volume by sentiment with average rating line</p>
+          </div>
+        </div>
+        <div class="relative h-64">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Operational Topics Chart + Property Scorecard Table -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-6 bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-sm font-semibold text-slate-900">Operational Topic Mentions (8 Categories)</h2>
+            <p class="text-xs text-slate-500">Negative complaints vs. positive praise — click a topic chip below to filter</p>
+          </div>
+        </div>
+        <div class="relative h-72">
+          <canvas id="topicChart"></canvas>
+        </div>
+        <div id="topicQuickChips" class="mt-3 flex flex-wrap gap-1.5"></div>
+      </div>
+
+      <div class="lg:col-span-6 bg-white rounded-xl border border-slate-200 p-5 shadow-sm flex flex-col">
+        <div class="mb-3">
+          <h2 class="text-sm font-semibold text-slate-900">Property Operations Scorecard</h2>
+          <p class="text-xs text-slate-500">Click any property row to filter the dashboard</p>
+        </div>
+        <div class="overflow-x-auto flex-1">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase">
+                <th class="py-2.5 pr-3">Property</th>
+                <th class="py-2.5 px-2 text-right">Booking.com</th>
+                <th class="py-2.5 px-2 text-right">Sample Avg</th>
+                <th class="py-2.5 px-2 text-right">Neg %</th>
+                <th class="py-2.5 pl-3">Top Issue</th>
+              </tr>
+            </thead>
+            <tbody id="propertyTableBody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Review Feed -->
+    <section class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-base font-semibold text-slate-900">Guest Review Feed</h2>
+          <p id="feedCountLabel" class="text-xs text-slate-500">Showing 0 reviews</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="sortSelect" class="text-xs font-medium text-slate-600">Sort by:</label>
+          <select id="sortSelect" class="text-xs rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="newest">Newest First</option>
+            <option value="lowest">Lowest Rating First</option>
+            <option value="highest">Highest Rating First</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="reviewFeedList" class="space-y-3"></div>
+
+      <div id="loadMoreWrapper" class="mt-4 text-center hidden">
+        <button id="loadMoreBtn" type="button" class="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition">
+          Load More Reviews
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Update / Scrape Reviews Modal -->
+  <div id="scrapeModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-xl border border-slate-200 p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="p-1.5 rounded-lg bg-emerald-50 text-emerald-700"><i data-lucide="refresh-cw" class="w-4 h-4"></i></span>
+          <h3 class="text-base font-bold text-slate-900">Update Reviews from Booking.com</h3>
+        </div>
+        <button id="closeScrapeModalBtn" type="button" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-sm">
+        <div>
+          <label for="scrapePropertySelect" class="block text-xs font-semibold text-slate-600 mb-1">Target Property</label>
+          <select id="scrapePropertySelect" class="w-full text-sm rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="all">All 4 Azzurro Hotels Properties</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="scrapeMaxPagesSelect" class="block text-xs font-semibold text-slate-600 mb-1">Pages per Property (10 reviews/page)</label>
+          <select id="scrapeMaxPagesSelect" class="w-full text-sm rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <option value="0" selected>All available pages (full history)</option>
+            <option value="2">2 pages (quick daily check)</option>
+            <option value="5">5 pages (~50 reviews)</option>
+            <option value="10">10 pages (~100 reviews)</option>
+            <option value="25">25 pages (~250 reviews)</option>
+          </select>
+          <label class="mt-2 inline-flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+            <input id="scrapeFullRefreshCheckbox" type="checkbox" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+            <span>Full refresh (don't stop early on already-seen reviews)</span>
+          </label>
+        </div>
+
+        <div id="scrapeStatusBox" class="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+          Ready to collect newly published reviews from Booking.com. Existing reviews are automatically deduplicated via SHA-256 hash.
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        <button id="cancelScrapeBtn" type="button" class="px-3.5 py-2 text-xs font-medium rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition">
+          Close
+        </button>
+        <button id="runScrapeBtn" type="button" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition disabled:opacity-50">
+          <i data-lucide="play" class="w-3.5 h-3.5"></i>
+          <span id="runScrapeBtnText">Scrape Latest Reviews</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Methodology Modal -->
+  <div id="methodologyModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-xl border border-slate-200 p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="text-base font-bold text-slate-900">Collection &amp; Insights Methodology</h3>
+        <button id="closeMethodologyBtn" type="button" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="space-y-3 text-sm text-slate-600 leading-relaxed">
+        <div>
+          <h4 class="font-semibold text-slate-900">1. Review Collection &amp; Deduplication</h4>
+          <p>Booking.com does not offer a public reviews API. The companion Python scraper fetches Booking.com's public <code class="text-xs bg-slate-100 px-1 py-0.5 rounded">reviewlist.html</code> endpoint sorted newest-first, applies multi-selector HTML parsing with exponential backoff and polite rate limiting, and deduplicates every review using a deterministic SHA-256 hash stored in SQLite.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-slate-900">2. Operational Topic Classification (8 Categories)</h4>
+          <p>Each review is analyzed separately across its <em>Liked</em> and <em>Disliked</em> sections using a transparent domain lexicon covering Cleanliness, Check-in experience, Staff/receptionist behaviour, Noise, Facilities, Location, Room condition, and Value for money. Ratings are bucketed into Positive (7.0+), Neutral (5.0–6.9), and Negative (&lt;5.0).</p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-slate-900">3. Current Week vs. Previous Week Logic</h4>
+          <p>When live scraping runs daily, the Current Week KPI compares the last 7 calendar days against the preceding 7 days. On a static snapshot, it automatically anchors to the latest active 7-day window containing reviews and labels the exact dates so operations staff always see accurate comparisons.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-slate-900">4. Limitations &amp; Sample Data Note</h4>
+          <p>This dashboard is pre-loaded with 76 real guest reviews collected across the four Azzurro Hotels properties (combining Booking.com reviews and partner OTA listings where Booking.com's drawer is client-side gated), alongside each property's live Booking.com overall rating. Lexicon matching is fast and explainable, though sarcasm or unstated context can be improved by enabling the optional LLM classifier hook in the backend.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Embedded grounded dataset (synced from config/properties.json & data/sample_reviews.json)
+    const INITIAL_PROPERTIES = [{"id": "olympic-paddington", "name": "Olympic Hotel Paddington", "booking_title": "Olympic Paddington Budget Hotel - across Allianz Stadium", "booking_url": "https://www.booking.com/hotel/au/olympic-paddington.html", "cc1": "au", "pagename": "olympic-paddington", "address": "308 Moore Park Road, Paddington, Sydney NSW 2021", "booking_overall_rating": 6.4, "booking_total_reviews": 128, "wifi_rating": 8.3, "subscores": {"cleanliness": 8.0, "amenities": 7.6, "staff": 7.6, "location": 8.4}, "operational_notes": "Adults-only budget rooms across from Allianz Stadium; virtual front desk; 3:00 PM check-in / 10:00 AM check-out."}, {"id": "potts-point", "name": "Potts Point", "booking_title": "Azzurro Pod Hotel Potts Point - Near Kings Cross Station", "booking_url": "https://www.booking.com/hotel/au/venus-potts-point-sydney.html", "cc1": "au", "pagename": "venus-potts-point-sydney", "address": "141-143 Victoria Street, Potts Point, Sydney NSW 2011", "booking_overall_rating": 6.3, "booking_total_reviews": 2394, "wifi_rating": 8.3, "subscores": {"cleanliness": 6.8, "location": 8.4, "value": 7.2, "facilities": 6.7, "comfort": 6.7, "staff": 7.5}, "operational_notes": "No elevator (stairs only); virtual reception; $10 towel rental; 3.5% credit card surcharge; complimentary dinner 7:00-8:00 PM."}, {"id": "central-sydney", "name": "Central Sydney", "booking_title": "Azzurro Pod Hotel Central Sydney - Near Central Station", "booking_url": "https://www.booking.com/hotel/au/venus-surry-hills.html", "cc1": "au", "pagename": "venus-surry-hills", "address": "90 Wentworth Avenue, Surry Hills, Sydney NSW 2010", "booking_overall_rating": 6.6, "booking_total_reviews": 2450, "wifi_rating": 9.0, "subscores": {"cleanliness": 6.5, "service": 6.8, "amenities": 6.1, "location": 7.5}, "operational_notes": "Near Central Station; no elevator; virtual reception; $10 towel/padlock purchase; complimentary dinner 7:00-8:00 PM."}, {"id": "darling-harbour", "name": "Darling Harbour", "booking_title": "Azzurro Pod Hotel Darling Harbour - Near Convention Center", "booking_url": "https://www.booking.com/hotel/au/chateau-de-venus.html", "cc1": "au", "pagename": "chateau-de-venus", "address": "22 Allen Street, Pyrmont / Sydney CBD, Sydney NSW 2009", "booking_overall_rating": 6.6, "booking_total_reviews": 4310, "wifi_rating": 8.3, "subscores": {"cleanliness": 6.9, "location": 8.2, "value": 7.5, "facilities": 6.8, "comfort": 6.8, "staff": 7.6}, "operational_notes": "Near ICC Sydney & Darling Harbour; no elevator; virtual reception; $10 towel/padlock; complimentary dinner 6:30-7:45 PM."}];
+    const INITIAL_REVIEWS = [];
+
+    const TOPIC_RULES = {
+      "Cleanliness": [
+        /\bclean\w*\b/i, /\bdirty\b/i, /\bfilth\w*\b/i, /\bmould\w*\b/i, /\bmold\w*\b/i,
+        /\bstain\w*\b/i, /\bhygien\w*\b/i, /\bsmell\w*\b/i, /\bstank\b/i, /\bstink\w*\b/i,
+        /\bodour\b/i, /\bodor\b/i, /\bvacuum\w*\b/i, /\bhairs?\b/i, /\btrash\b/i,
+        /\brubbish\b/i, /\bdisgusting\b/i, /\bgross\b/i, /\bsanitiz\w*\b/i, /\bhousekeep\w*\b/i,
+        /\bcockroach\w*\b/i, /\bants\b/i, /\bflies\b/i, /\bmessy\b/i, /\btoilet paper\b/i, /\bclogged\b/i
+      ],
+      "Check-in experience": [
+        /\bcheck[\s-]?in\b/i, /\bcheck[\s-]?out\b/i, /\bdoor code\w*\b/i, /\baccess code\w*\b/i,
+        /\bkeypad\b/i, /\blocked out\b/i, /\bself check\b/i, /\bonline check\b/i,
+        /\bvirtual reception\b/i, /\bluggage\b/i, /\bbags? storage\b/i, /\bstorage area\b/i, /\bpassport\b/i
+      ],
+      "Staff or receptionist behaviour": [
+        /\bstaff\w*\b/i, /\breception\w*\b/i, /\bmanager\b/i, /\bhost\b/i, /\bconcierge\b/i,
+        /\bcustomer service\b/i, /\bservice\b/i, /\bfriendly\b/i, /\bhelpful\b/i, /\brude\b/i,
+        /\babusive\b/i, /\babused\b/i, /\bempathet\w*\b/i, /\bempathy\b/i, /\brobot\w*\b/i,
+        /\bno offline staff\b/i, /\bno human staff\b/i, /\bno staff\b/i, /\bvirtual\b/i, /\bscreen\b/i, /\bipad\b/i, /\bzoom\b/i
+      ],
+      "Noise": [
+        /\bnois\w*\b/i, /\bloud\w*\b/i, /\bquiet\b/i, /\bhear everything\b/i, /\bthin walls?\b/i,
+        /\bslamming\b/i, /\bcreak\w*\b/i, /\bjet engine\b/i, /\bearplug\w*\b/i, /\btraffic\b/i,
+        /\bconstruction\b/i, /\bscream\w*\b/i, /\balarm\b/i
+      ],
+      "Facilities": [
+        /\bkitchen\w*\b/i, /\bbathroom\w*\b/i, /\bshower\w*\b/i, /\btoilet\w*\b/i, /\bwi[\s-]?fi\b/i,
+        /\blift\b/i, /\belevator\b/i, /\bstairs?\b/i, /\blaundry\b/i, /\bwashing machine\b/i,
+        /\bdryer\b/i, /\bfridge\b/i, /\bmicrowave\b/i, /\bair[\s-]?con\w*\b/i, /\bac\b/i,
+        /\bheating\b/i, /\blockers?\b/i, /\btowels?\b/i, /\bbreakfast\b/i, /\bdinner\b/i,
+        /\bmeals?\b/i, /\bfacilit\w*\b/i, /\bamenit\w*\b/i, /\bqueue\w*\b/i, /\bcommon area\b/i
+      ],
+      "Location": [
+        /\blocation\b/i, /\bcentral\b/i, /\bstation\b/i, /\btransport\b/i, /\bwalking distance\b/i,
+        /\bcbd\b/i, /\bdarling harbour\b/i, /\bkings cross\b/i, /\bnear\b/i, /\bclose to\b/i,
+        /\bconvenient\b/i, /\bcafes?\b/i, /\brestaurants?\b/i, /\bneighbourhood\b/i, /\bneighborhood\b/i, /\baccessible\b/i, /\bspot\b/i
+      ],
+      "Room condition": [
+        /\brooms?\b/i, /\bbeds?\b/i, /\bmattress\b/i, /\bpillow\w*\b/i, /\bcurtain\w*\b/i,
+        /\bbunk\b/i, /\block\b/i, /\bbroken\b/i, /\brundown\b/i, /\bcramped\b/i, /\bsmall\w*\b/i,
+        /\btiny\b/i, /\bdark\b/i, /\bcarpet\w*\b/i, /\bhumid\b/i, /\bventilation\b/i,
+        /\bwobbly\b/i, /\bpictures?\b/i, /\bphotos?\b/i, /\bmaintained\b/i, /\brenovated\b/i, /\bpower outlet\b/i
+      ],
+      "Value for money": [
+        /\bvalue\b/i, /\bprice\w*\b/i, /\bcheap\w*\b/i, /\boverpriced\b/i, /\bbudget\b/i,
+        /\bworth\b/i, /\bmoney\b/i, /\bexpensive\b/i, /\bfree dinner\b/i, /\bfree breakfast\b/i,
+        /\brefund\w*\b/i, /\bcharge\w*\b/i, /\bfines?\b/i, /\baffordable\b/i, /\bten dollars\b/i, /\$10\b/i, /\$15\b/i
+      ]
+    };
+
+    const TOPIC_NAMES = Object.keys(TOPIC_RULES);
+
+    const state = {
+      properties: INITIAL_PROPERTIES,
+      rawReviews: INITIAL_REVIEWS.slice(),
+      propertyId: "all",
+      datePreset: "all",
+      startDate: "",
+      endDate: "",
+      sentiment: "all",
+      topic: "all",
+      search: "",
+      sortBy: "newest",
+      visibleCount: 15
+    };
+
+    let propertyChartInstance = null;
+    let trendChartInstance = null;
+    let topicChartInstance = null;
+
+    function showToast(message) {
+      const el = document.getElementById("toast");
+      el.textContent = message;
+      el.classList.remove("hidden");
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.add("hidden"), 3800);
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function classifySentiment(rating) {
+      if (rating >= 7.0) return "positive";
+      if (rating >= 5.0) return "neutral";
+      return "negative";
+    }
+
+    function extractTopics(text) {
+      if (!text || !text.trim()) return [];
+      return TOPIC_NAMES.filter((topic) => TOPIC_RULES[topic].some((rx) => rx.test(text)));
+    }
+
+    function enrichReview(r) {
+      const rating = Number(r.rating) || 0;
+      if (r.classifier_source && String(r.classifier_source).startsWith("gemini") && Array.isArray(r.topics)) {
+        return {
+          ...r,
+          rating,
+          sentiment: r.sentiment || classifySentiment(rating),
+          topics: r.topics,
+          positive_topics: r.positive_topics || [],
+          negative_topics: r.negative_topics || []
+        };
+      }
+      const sentiment = classifySentiment(rating);
+      const posTopics = extractTopics(r.positive_text || "");
+      const negTopics = extractTopics(r.negative_text || "");
+      const titleTopics = extractTopics(r.title || "");
+
+      if (sentiment === "negative") {
+        titleTopics.forEach((t) => { if (!negTopics.includes(t)) negTopics.push(t); });
+      } else if (sentiment === "positive") {
+        titleTopics.forEach((t) => { if (!posTopics.includes(t)) posTopics.push(t); });
+      }
+      const allTopics = Array.from(new Set([...posTopics, ...negTopics, ...titleTopics])).sort();
+      return { ...r, rating, sentiment, topics: allTopics, positive_topics: posTopics, negative_topics: negTopics };
+    }
+
+    function parseDateMs(iso) {
+      return new Date(iso.slice(0, 10) + "T00:00:00Z").getTime();
+    }
+
+    function formatShortDate(iso) {
+      const d = new Date(iso.slice(0, 10) + "T00:00:00Z");
+      return d.toLocaleDateString("en-AU", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+    }
+
+    function addDaysIso(iso, deltaDays) {
+      const d = new Date(iso.slice(0, 10) + "T00:00:00Z");
+      d.setUTCDate(d.getUTCDate() + deltaDays);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function computeWeeklyStats(reviews) {
+      if (!reviews.length) {
+        return { currAvg: null, currCount: 0, prevAvg: null, prevCount: 0, delta: null, currLabel: "No reviews in range", prevLabel: "No baseline" };
+      }
+      const uniqueDates = Array.from(new Set(reviews.map((r) => r.review_date.slice(0, 10)))).sort().reverse();
+      let endIso = uniqueDates[0];
+      let currStart = addDaysIso(endIso, -6);
+      let prevEnd = addDaysIso(currStart, -1);
+      let prevStart = addDaysIso(prevEnd, -6);
+
+      const inRange = (r, s, e) => r.review_date.slice(0, 10) >= s && r.review_date.slice(0, 10) <= e;
+      let curr = reviews.filter((r) => inRange(r, currStart, endIso));
+      let prev = reviews.filter((r) => inRange(r, prevStart, prevEnd));
+
+      if (curr.length < 3 || prev.length === 0) {
+        for (const cand of uniqueDates) {
+          const cs = addDaysIso(cand, -6);
+          const pe = addDaysIso(cs, -1);
+          const ps = addDaysIso(pe, -6);
+          const cArr = reviews.filter((r) => inRange(r, cs, cand));
+          const pArr = reviews.filter((r) => inRange(r, ps, pe));
+          if (cArr.length >= 3 && pArr.length >= 2) {
+            endIso = cand; currStart = cs; prevStart = ps; prevEnd = pe;
+            curr = cArr; prev = pArr;
+            break;
+          }
+        }
+      }
+
+      const avg = (arr) => arr.length ? Number((arr.reduce((a, b) => a + b.rating, 0) / arr.length).toFixed(2)) : null;
+      const currAvg = avg(curr);
+      const prevAvg = avg(prev);
+      const delta = (currAvg !== null && prevAvg !== null) ? Number((currAvg - prevAvg).toFixed(2)) : null;
+
+      return {
+        currAvg,
+        currCount: curr.length,
+        prevAvg,
+        prevCount: prev.length,
+        delta,
+        currLabel: `${formatShortDate(currStart)} – ${formatShortDate(endIso)} (${curr.length} reviews)`,
+        prevLabel: prevAvg !== null
+          ? `Prior week ${prevAvg.toFixed(1)}/10 (${prev.length} reviews, ${formatShortDate(prevStart)} – ${formatShortDate(prevEnd)})`
+          : "No prior week reviews"
+      };
+    }
+
+    function getScopedReviews() {
+      const enriched = state.rawReviews.map(enrichReview);
+      const maxIso = enriched.length
+        ? enriched.map((r) => r.review_date.slice(0, 10)).sort().reverse()[0]
+        : "2026-11-06";
+
+      let startBound = state.startDate;
+      let endBound = state.endDate;
+
+      if (state.datePreset === "latest_week") {
+        const weekly = computeWeeklyStats(state.propertyId === "all" ? enriched : enriched.filter((r) => r.property_id === state.propertyId));
+        if (weekly.currCount > 0) {
+          const propEnriched = state.propertyId === "all" ? enriched : enriched.filter((r) => r.property_id === state.propertyId);
+          const latest = propEnriched.map((r) => r.review_date.slice(0, 10)).sort().reverse()[0] || maxIso;
+          startBound = addDaysIso(latest, -6);
+          endBound = latest;
+        }
+      } else if (state.datePreset === "last_30") {
+        startBound = addDaysIso(maxIso, -29);
+        endBound = maxIso;
+      } else if (state.datePreset === "last_90") {
+        startBound = addDaysIso(maxIso, -89);
+        endBound = maxIso;
+      }
+
+      const scope = enriched.filter((r) => {
+        if (state.propertyId !== "all" && r.property_id !== state.propertyId) return false;
+        const d = r.review_date.slice(0, 10);
+        if (startBound && d < startBound) return false;
+        if (endBound && d > endBound) return false;
+        return true;
+      });
+
+      const q = state.search.trim().toLowerCase();
+      const feed = scope.filter((r) => {
+        if (state.sentiment !== "all" && r.sentiment !== state.sentiment) return false;
+        if (state.topic !== "all" && !r.topics.includes(state.topic)) return false;
+        if (q) {
+          const hay = `${r.title} ${r.positive_text} ${r.negative_text} ${r.reviewer_name}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      feed.sort((a, b) => {
+        if (state.sortBy === "lowest") return a.rating - b.rating || b.review_date.localeCompare(a.review_date);
+        if (state.sortBy === "highest") return b.rating - a.rating || b.review_date.localeCompare(a.review_date);
+        return b.review_date.localeCompare(a.review_date);
+      });
+
+      return { scope, feed };
+    }
+
+    function renderDashboard() {
+      const { scope, feed } = getScopedReviews();
+      const propMap = Object.fromEntries(state.properties.map((p) => [p.id, p]));
+
+      const pos = scope.filter((r) => r.sentiment === "positive");
+      const neu = scope.filter((r) => r.sentiment === "neutral");
+      const neg = scope.filter((r) => r.sentiment === "negative");
+      const periodAvg = scope.length ? (scope.reduce((s, r) => s + r.rating, 0) / scope.length) : null;
+      const negRate = scope.length ? ((neg.length / scope.length) * 100) : 0;
+
+      // Weekly KPI
+      const weekly = computeWeeklyStats(scope);
+      document.getElementById("kpiCurrWeekAvg").textContent = weekly.currAvg !== null ? weekly.currAvg.toFixed(1) : "N/A";
+      document.getElementById("kpiCurrWeekWindow").textContent = weekly.currLabel;
+
+      const deltaEl = document.getElementById("kpiWowDelta");
+      const badgeEl = document.getElementById("kpiWowBadge");
+      if (weekly.delta !== null) {
+        const sign = weekly.delta > 0 ? "+" : "";
+        deltaEl.textContent = `${sign}${weekly.delta.toFixed(1)}`;
+        deltaEl.className = `text-3xl font-bold ${weekly.delta >= 0 ? "text-emerald-600" : "text-rose-600"}`;
+        badgeEl.textContent = weekly.delta >= 0 ? "Improved" : "Declined";
+        badgeEl.className = `text-xs font-semibold px-2 py-0.5 rounded-full ${weekly.delta >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"}`;
+      } else {
+        deltaEl.textContent = "—";
+        deltaEl.className = "text-3xl font-bold text-slate-400";
+        badgeEl.textContent = "Insufficient data";
+        badgeEl.className = "text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500";
+      }
+      document.getElementById("kpiPrevWeekDetail").textContent = weekly.prevLabel;
+
+      document.getElementById("kpiNegRate").textContent = `${negRate.toFixed(0)}%`;
+      document.getElementById("kpiPeriodAvg").textContent = periodAvg !== null ? `Sample avg: ${periodAvg.toFixed(1)}/10` : "Sample avg: —";
+      document.getElementById("kpiSentimentSplit").textContent = `${pos.length} Positive · ${neu.length} Neutral · ${neg.length} Negative`;
+
+      // Topic stats
+      const topicStats = TOPIC_NAMES.map((topic) => {
+        const negCount = neg.filter((r) => (r.negative_topics.length ? r.negative_topics : r.topics).includes(topic)).length;
+        const posCount = pos.filter((r) => (r.positive_topics.length ? r.positive_topics : r.topics).includes(topic)).length;
+        return {
+          topic,
+          negCount,
+          posCount,
+          negPct: neg.length ? (negCount / neg.length) * 100 : 0,
+          posPct: pos.length ? (posCount / pos.length) * 100 : 0
+        };
+      }).sort((a, b) => b.negCount - a.negCount);
+
+      const topIssue = topicStats[0];
+      if (topIssue && topIssue.negCount > 0) {
+        document.getElementById("kpiTopIssue").textContent = topIssue.topic;
+        document.getElementById("kpiTopIssueDetail").textContent = `${Math.round(topIssue.negPct)}% of negative reviews (${topIssue.negCount}/${neg.length})`;
+      } else {
+        document.getElementById("kpiTopIssue").textContent = "No complaints";
+        document.getElementById("kpiTopIssueDetail").textContent = "No negative reviews in filter";
+      }
+
+      // Property breakdown
+      const propStats = state.properties.map((p) => {
+        const pRevs = scope.filter((r) => r.property_id === p.id);
+        const pNeg = pRevs.filter((r) => r.sentiment === "negative");
+        const avg = pRevs.length ? pRevs.reduce((s, r) => s + r.rating, 0) / pRevs.length : null;
+        const counts = {};
+        pNeg.forEach((r) => {
+          (r.negative_topics.length ? r.negative_topics : r.topics).forEach((t) => { counts[t] = (counts[t] || 0) + 1; });
+        });
+        const topNegTopic = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "None flagged";
+        return {
+          ...p,
+          sampleCount: pRevs.length,
+          sampleAvg: avg,
+          negCount: pNeg.length,
+          negPct: pRevs.length ? (pNeg.length / pRevs.length) * 100 : 0,
+          topNegTopic
+        };
+      });
+
+      // Insights callout cards
+      const insights = [];
+      if (neg.length && topIssue && topIssue.negCount > 0) {
+        insights.push({
+          tone: "rose",
+          title: `${Math.round(topIssue.negPct)}% of negative reviews mentioned ${topIssue.topic.toLowerCase()}`,
+          desc: `Flagged in ${topIssue.negCount} of ${neg.length} negative reviews in the current selection.`
+        });
+      }
+      if (neg.length && topicStats[1] && topicStats[1].negCount > 0) {
+        insights.push({
+          tone: "amber",
+          title: `${Math.round(topicStats[1].negPct)}% of negative reviews cited ${topicStats[1].topic.toLowerCase()}`,
+          desc: `${topicStats[1].negCount} negative mentions — second-highest operational driver.`
+        });
+      }
+      const topPos = [...topicStats].sort((a, b) => b.posCount - a.posCount)[0];
+      if (pos.length && topPos && topPos.posCount > 0) {
+        insights.push({
+          tone: "emerald",
+          title: `${topPos.topic} praised in ${Math.round(topPos.posPct)}% of positive reviews`,
+          desc: `Top guest strength across ${topPos.posCount} of ${pos.length} positive reviews.`
+        });
+      }
+      const activeProps = propStats.filter((p) => p.sampleCount > 0);
+      if (activeProps.length > 1) {
+        const hotspot = [...activeProps].sort((a, b) => b.negPct - a.negPct)[0];
+        if (hotspot.negCount > 0) {
+          insights.push({
+            tone: "sky",
+            title: `${hotspot.name} has the highest complaint rate (${hotspot.negPct.toFixed(0)}%)`,
+            desc: `Primary issue to prioritize: ${hotspot.topNegTopic}.`
+          });
+        }
+      }
+
+      const toneStyles = {
+        rose: "bg-rose-50/70 border-rose-200 text-rose-900",
+        amber: "bg-amber-50/70 border-amber-200 text-amber-900",
+        emerald: "bg-emerald-50/70 border-emerald-200 text-emerald-900",
+        sky: "bg-sky-50/70 border-sky-200 text-sky-900"
+      };
+      document.getElementById("insightsContainer").innerHTML = insights.length
+        ? insights.map((ins) => `
+            <div class="rounded-lg border p-3 ${toneStyles[ins.tone]}">
+              <p class="text-xs font-semibold leading-snug">${escapeHtml(ins.title)}</p>
+              <p class="text-xs opacity-80 mt-1">${escapeHtml(ins.desc)}</p>
+            </div>
+          `).join("")
+        : `<p class="text-xs text-slate-500 col-span-full">No reviews match the current filter criteria.</p>`;
+
+      // Active filter summary
+      document.getElementById("activeFilterSummary").textContent =
+        `${feed.length} matching reviews (out of ${state.rawReviews.length} total)`;
+
+      renderPropertyChart(propStats);
+      renderTrendChart(scope);
+      renderTopicChart(topicStats);
+      renderPropertyTable(propStats);
+      renderFeed(feed, propMap);
+    }
+
+    function renderPropertyChart(propStats) {
+      const ctx = document.getElementById("propertyChart").getContext("2d");
+      if (propertyChartInstance) propertyChartInstance.destroy();
+      propertyChartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: propStats.map((p) => p.name),
+          datasets: [
+            {
+              label: "Booking.com Live Score",
+              data: propStats.map((p) => p.booking_overall_rating),
+              backgroundColor: "#0F2540",
+              borderRadius: 6
+            },
+            {
+              label: "Filtered Sample Avg",
+              data: propStats.map((p) => p.sampleAvg !== null ? Number(p.sampleAvg.toFixed(2)) : 0),
+              backgroundColor: "#38BDF8",
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { beginAtZero: true, max: 10, ticks: { stepSize: 2 } },
+            x: { grid: { display: false } }
+          },
+          plugins: {
+            legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function renderTrendChart(scope) {
+      const buckets = {};
+      scope.forEach((r) => {
+        const ym = r.review_date.slice(0, 7);
+        if (!buckets[ym]) buckets[ym] = { pos: 0, neu: 0, neg: 0, sum: 0, count: 0 };
+        if (r.sentiment === "positive") buckets[ym].pos += 1;
+        else if (r.sentiment === "neutral") buckets[ym].neu += 1;
+        else buckets[ym].neg += 1;
+        buckets[ym].sum += r.rating;
+        buckets[ym].count += 1;
+      });
+      const labels = Object.keys(buckets).sort();
+      const ctx = document.getElementById("trendChart").getContext("2d");
+      if (trendChartInstance) trendChartInstance.destroy();
+      trendChartInstance = new Chart(ctx, {
+        data: {
+          labels,
+          datasets: [
+            { type: "bar", label: "Positive (7+)", data: labels.map((m) => buckets[m].pos), backgroundColor: "#10B981", stack: "s1", borderRadius: 3 },
+            { type: "bar", label: "Neutral (5-6.9)", data: labels.map((m) => buckets[m].neu), backgroundColor: "#F59E0B", stack: "s1", borderRadius: 3 },
+            { type: "bar", label: "Negative (<5)", data: labels.map((m) => buckets[m].neg), backgroundColor: "#F43F5E", stack: "s1", borderRadius: 3 },
+            {
+              type: "line",
+              label: "Avg Rating",
+              data: labels.map((m) => Number((buckets[m].sum / buckets[m].count).toFixed(2))),
+              borderColor: "#0F2540",
+              backgroundColor: "#0F2540",
+              yAxisID: "y1",
+              tension: 0.3,
+              pointRadius: 3
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true, grid: { display: false } },
+            y: { stacked: true, beginAtZero: true, title: { display: true, text: "Reviews", font: { size: 11 } } },
+            y1: { position: "right", min: 0, max: 10, grid: { drawOnChartArea: false }, title: { display: true, text: "Avg Score", font: { size: 11 } } }
+          },
+          plugins: {
+            legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function renderTopicChart(topicStats) {
+      const ctx = document.getElementById("topicChart").getContext("2d");
+      if (topicChartInstance) topicChartInstance.destroy();
+      topicChartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: topicStats.map((t) => t.topic),
+          datasets: [
+            { label: "Negative Mentions", data: topicStats.map((t) => t.negCount), backgroundColor: "#F43F5E", borderRadius: 4 },
+            { label: "Positive Mentions", data: topicStats.map((t) => t.posCount), backgroundColor: "#10B981", borderRadius: 4 }
+          ]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { beginAtZero: true, ticks: { precision: 0 } },
+            y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+          },
+          plugins: {
+            legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+
+      const chipsEl = document.getElementById("topicQuickChips");
+      chipsEl.innerHTML = topicStats.map((t) => {
+        const active = state.topic === t.topic;
+        return `<button type="button" data-topic-chip="${escapeHtml(t.topic)}" class="topic-chip px-2.5 py-1 rounded-full text-xs font-medium border transition ${
+          active ? "bg-[#0F2540] text-white border-[#0F2540]" : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+        }">${escapeHtml(t.topic)} (${t.negCount} neg)</button>`;
+      }).join("");
+    }
+
+    function renderPropertyTable(propStats) {
+      const tbody = document.getElementById("propertyTableBody");
+      tbody.innerHTML = propStats.map((p) => {
+        const selected = state.propertyId === p.id;
+        return `
+          <tr data-prop-row="${escapeHtml(p.id)}" class="cursor-pointer transition ${selected ? "bg-sky-50/80" : "hover:bg-slate-50"}">
+            <td class="py-3 pr-3">
+              <div class="font-semibold text-slate-900">${escapeHtml(p.name)}</div>
+              <div class="text-xs text-slate-500">${p.sampleCount} sample · ${p.booking_total_reviews.toLocaleString()} Booking.com</div>
+            </td>
+            <td class="py-3 px-2 text-right font-semibold text-slate-700">${p.booking_overall_rating.toFixed(1)}</td>
+            <td class="py-3 px-2 text-right font-semibold ${p.sampleAvg !== null && p.sampleAvg < 5 ? "text-rose-600" : "text-slate-900"}">${p.sampleAvg !== null ? p.sampleAvg.toFixed(1) : "—"}</td>
+            <td class="py-3 px-2 text-right">
+              <span class="inline-block px-2 py-0.5 rounded-full text-xs font-semibold ${p.negPct >= 50 ? "bg-rose-50 text-rose-700" : p.negPct >= 25 ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}">${p.negPct.toFixed(0)}%</span>
+            </td>
+            <td class="py-3 pl-3 text-xs font-medium text-slate-700">${escapeHtml(p.topNegTopic)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderFeed(feed, propMap) {
+      document.getElementById("feedCountLabel").textContent = `Showing ${Math.min(feed.length, state.visibleCount)} of ${feed.length} reviews`;
+      const container = document.getElementById("reviewFeedList");
+      const slice = feed.slice(0, state.visibleCount);
+
+      if (!slice.length) {
+        container.innerHTML = `<div class="text-center py-10 text-sm text-slate-500 border border-dashed border-slate-200 rounded-xl">No reviews loaded yet (or none match your filters). Click Update Reviews in the top bar to scrape live reviews from Booking.com.</div>`;
+      } else {
+        container.innerHTML = slice.map((r) => {
+          const prop = propMap[r.property_id];
+          const badgeColor = r.rating >= 7 ? "bg-emerald-600 text-white" : r.rating >= 5 ? "bg-amber-500 text-white" : "bg-rose-600 text-white";
+          const topicsHtml = r.topics.map((t) => `<span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">${escapeHtml(t)}</span>`).join("");
+
+          return `
+            <article class="rounded-xl border border-slate-200 p-4 hover:border-slate-300 transition bg-white">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                  <span class="px-2.5 py-1 rounded-lg text-sm font-bold ${badgeColor}">${r.rating.toFixed(1)}</span>
+                  <div>
+                    <h3 class="text-sm font-semibold text-slate-900">${escapeHtml(r.title || "Guest Review")}</h3>
+                    <div class="text-xs text-slate-500 flex flex-wrap items-center gap-1.5 mt-0.5">
+                      <span class="font-medium text-sky-800">${escapeHtml(prop ? prop.name : r.property_id)}</span>
+                      <span>·</span>
+                      <span>${escapeHtml(r.reviewer_name)}${r.reviewer_country ? ` (${escapeHtml(r.reviewer_country)})` : ""}</span>
+                      <span>·</span>
+                      <span>${escapeHtml(r.traveler_type || "Guest")}</span>
+                      <span>·</span>
+                      <span>${formatShortDate(r.review_date)}</span>
+                    </div>
+                  </div>
+                </div>
+                <span class="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600">${escapeHtml(r.source_platform || "Booking.com")}</span>
+              </div>
+
+              <div class="mt-3 space-y-1.5 text-sm leading-relaxed">
+                ${r.positive_text ? `<p class="text-slate-700"><span class="inline-block font-bold text-emerald-600 mr-1.5">+</span>${escapeHtml(r.positive_text)}</p>` : ""}
+                ${r.negative_text ? `<p class="text-slate-700"><span class="inline-block font-bold text-rose-600 mr-1.5">−</span>${escapeHtml(r.negative_text)}</p>` : ""}
+              </div>
+
+              ${r.ai_summary ? `<p class="mt-2 text-xs text-indigo-800 bg-indigo-50/70 border border-indigo-100 rounded-lg px-2.5 py-1.5"><span class="font-semibold">Gemini AI Summary:</span> ${escapeHtml(r.ai_summary)}</p>` : ""}
+              ${topicsHtml ? `<div class="mt-3 flex flex-wrap items-center gap-1.5">${topicsHtml}${r.classifier_source && String(r.classifier_source).startsWith("gemini") ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">Gemini + LangChain</span>` : ""}</div>` : ""}
+            </article>
+          `;
+        }).join("");
+      }
+
+      const loadMoreWrap = document.getElementById("loadMoreWrapper");
+      if (feed.length > state.visibleCount) {
+        loadMoreWrap.classList.remove("hidden");
+      } else {
+        loadMoreWrap.classList.add("hidden");
+      }
+    }
+
+    function exportFilteredCsv() {
+      const { feed } = getScopedReviews();
+      const headers = ["property_id", "review_date", "rating", "sentiment", "topics", "reviewer_name", "reviewer_country", "title", "positive_text", "negative_text", "source_platform"];
+      const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+      const rows = [headers.join(",")].concat(
+        feed.map((r) => [
+          r.property_id, r.review_date, r.rating, r.sentiment, r.topics.join("; "),
+          r.reviewer_name, r.reviewer_country, r.title, r.positive_text, r.negative_text, r.source_platform
+        ].map(esc).join(","))
+      );
+      const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "azzurro_reviews_filtered.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Exported ${feed.length} filtered reviews to CSV.`);
+    }
+
+    function initControls() {
+      const propSel = document.getElementById("propertyFilter");
+      state.properties.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name;
+        propSel.appendChild(opt);
+      });
+
+      const topicSel = document.getElementById("topicFilter");
+      TOPIC_NAMES.forEach((t) => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        topicSel.appendChild(opt);
+      });
+
+      propSel.addEventListener("change", (e) => { state.propertyId = e.target.value; state.visibleCount = 15; renderDashboard(); });
+      document.getElementById("datePresetFilter").addEventListener("change", (e) => {
+        state.datePreset = e.target.value;
+        if (state.datePreset !== "custom") {
+          state.startDate = ""; state.endDate = "";
+          document.getElementById("startDateInput").value = "";
+          document.getElementById("endDateInput").value = "";
+        }
+        state.visibleCount = 15;
+        renderDashboard();
+      });
+      document.getElementById("startDateInput").addEventListener("change", (e) => {
+        state.startDate = e.target.value;
+        state.datePreset = "custom";
+        document.getElementById("datePresetFilter").value = "custom";
+        renderDashboard();
+      });
+      document.getElementById("endDateInput").addEventListener("change", (e) => {
+        state.endDate = e.target.value;
+        state.datePreset = "custom";
+        document.getElementById("datePresetFilter").value = "custom";
+        renderDashboard();
+      });
+      topicSel.addEventListener("change", (e) => { state.topic = e.target.value; state.visibleCount = 15; renderDashboard(); });
+      document.getElementById("searchInput").addEventListener("input", (e) => { state.search = e.target.value; state.visibleCount = 15; renderDashboard(); });
+      document.getElementById("sortSelect").addEventListener("change", (e) => { state.sortBy = e.target.value; renderDashboard(); });
+
+      document.getElementById("sentimentPills").addEventListener("click", (e) => {
+        const btn = e.target.closest(".sentiment-pill");
+        if (!btn) return;
+        state.sentiment = btn.dataset.sentiment;
+        document.querySelectorAll(".sentiment-pill").forEach((b) => {
+          const active = b.dataset.sentiment === state.sentiment;
+          b.className = `sentiment-pill px-3 py-1 rounded-full text-xs font-medium transition ${
+            active ? "bg-[#0F2540] text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`;
+        });
+        state.visibleCount = 15;
+        renderDashboard();
+      });
+
+      document.getElementById("topicQuickChips").addEventListener("click", (e) => {
+        const chip = e.target.closest(".topic-chip");
+        if (!chip) return;
+        const clicked = chip.dataset.topicChip;
+        state.topic = state.topic === clicked ? "all" : clicked;
+        document.getElementById("topicFilter").value = state.topic;
+        state.visibleCount = 15;
+        renderDashboard();
+      });
+
+      document.getElementById("propertyTableBody").addEventListener("click", (e) => {
+        const row = e.target.closest("tr[data-prop-row]");
+        if (!row) return;
+        const pid = row.dataset.propRow;
+        state.propertyId = state.propertyId === pid ? "all" : pid;
+        document.getElementById("propertyFilter").value = state.propertyId;
+        state.visibleCount = 15;
+        renderDashboard();
+      });
+
+      document.getElementById("resetFiltersBtn").addEventListener("click", () => {
+        state.propertyId = "all"; state.datePreset = "all"; state.startDate = ""; state.endDate = "";
+        state.sentiment = "all"; state.topic = "all"; state.search = ""; state.sortBy = "newest"; state.visibleCount = 15;
+        document.getElementById("propertyFilter").value = "all";
+        document.getElementById("datePresetFilter").value = "all";
+        document.getElementById("startDateInput").value = "";
+        document.getElementById("endDateInput").value = "";
+        document.getElementById("topicFilter").value = "all";
+        document.getElementById("searchInput").value = "";
+        document.getElementById("sortSelect").value = "newest";
+        document.querySelectorAll(".sentiment-pill").forEach((b) => {
+          b.className = `sentiment-pill px-3 py-1 rounded-full text-xs font-medium transition ${
+            b.dataset.sentiment === "all" ? "bg-[#0F2540] text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+          }`;
+        });
+        renderDashboard();
+      });
+
+      document.getElementById("loadMoreBtn").addEventListener("click", () => {
+        state.visibleCount += 15;
+        renderDashboard();
+      });
+
+      document.getElementById("exportCsvBtn").addEventListener("click", exportFilteredCsv);
+
+      document.getElementById("importJsonInput").addEventListener("change", (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const incoming = JSON.parse(String(reader.result));
+            if (!Array.isArray(incoming)) throw new Error("Expected a JSON array of review objects.");
+            const sig = (r) => `${r.property_id}|${r.reviewer_name}|${String(r.review_date).slice(0, 10)}|${Number(r.rating).toFixed(1)}|${(r.title || "").slice(0, 80)}`.toLowerCase();
+            const existing = new Set(state.rawReviews.map(sig));
+            let added = 0, skipped = 0;
+            incoming.forEach((r) => {
+              if (!r.property_id || !r.review_date || r.rating === undefined) return;
+              const k = sig(r);
+              if (existing.has(k)) { skipped++; return; }
+              existing.add(k);
+              state.rawReviews.push(r);
+              added++;
+            });
+            renderDashboard();
+            showToast(`Imported ${added} new reviews (${skipped} duplicates skipped).`);
+          } catch (err) {
+            showToast(`Import failed: ${err.message}`);
+          }
+          e.target.value = "";
+        };
+        reader.readAsText(file);
+      });
+
+      const modal = document.getElementById("methodologyModal");
+      document.getElementById("openMethodologyBtn").addEventListener("click", () => modal.classList.remove("hidden"));
+      document.getElementById("closeMethodologyBtn").addEventListener("click", () => modal.classList.add("hidden"));
+      modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.add("hidden"); });
+
+      // Populate Scrape Modal property selector
+      const scrapePropSel = document.getElementById("scrapePropertySelect");
+      state.properties.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.id;
+        opt.textContent = p.name;
+        scrapePropSel.appendChild(opt);
+      });
+
+      const scrapeModal = document.getElementById("scrapeModal");
+      const scrapeStatusBox = document.getElementById("scrapeStatusBox");
+      const runScrapeBtn = document.getElementById("runScrapeBtn");
+      const runScrapeBtnText = document.getElementById("runScrapeBtnText");
+
+      document.getElementById("openScrapeModalBtn").addEventListener("click", () => {
+        scrapePropSel.value = state.propertyId;
+        scrapeModal.classList.remove("hidden");
+      });
+      document.getElementById("closeScrapeModalBtn").addEventListener("click", () => scrapeModal.classList.add("hidden"));
+      document.getElementById("cancelScrapeBtn").addEventListener("click", () => scrapeModal.classList.add("hidden"));
+      scrapeModal.addEventListener("click", (e) => { if (e.target === scrapeModal) scrapeModal.classList.add("hidden"); });
+
+      async function syncFromBackend() {
+        if (window.location.protocol === "file:") return;
+        try {
+          const res = await fetch("/api/dashboard");
+          if (!res.ok) return;
+          const data = await res.json();
+          if (Array.isArray(data.reviews)) {
+            state.rawReviews = data.reviews;
+            renderDashboard();
+          }
+        } catch (_) {
+          // Offline/static mode fallback already rendered from embedded data
+        }
+      }
+
+      runScrapeBtn.addEventListener("click", async () => {
+        const targetProp = scrapePropSel.value;
+        const maxPages = document.getElementById("scrapeMaxPagesSelect").value;
+        runScrapeBtn.disabled = true;
+        runScrapeBtnText.textContent = "Scraping Booking.com...";
+        scrapeStatusBox.className = "rounded-lg border border-sky-200 bg-sky-50 p-3 text-xs text-sky-900";
+        scrapeStatusBox.textContent = "Connecting to Booking.com via backend scraper (Playwright / GraphQL / mirror fallback). This may take 15–40 seconds...";
+
+        try {
+          const fullRefresh = document.getElementById("scrapeFullRefreshCheckbox")?.checked ? "true" : "false";
+          const params = new URLSearchParams({ max_pages: maxPages, full_refresh: fullRefresh });
+          if (targetProp !== "all") params.set("property_id", targetProp);
+          const resp = await fetch(`/api/scrape?${params.toString()}`, { method: "POST" });
+          if (!resp.ok) throw new Error(`Server returned HTTP ${resp.status}`);
+          const result = await resp.json();
+
+          await syncFromBackend();
+
+          if (result.status === "failed") {
+            scrapeStatusBox.className = "rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900";
+            scrapeStatusBox.textContent = `Scrape failed: ${(result.errors || []).join(" | ") || "Check server logs."}`;
+            showToast("Scrape completed with errors — see details in modal.");
+          } else {
+            scrapeStatusBox.className = "rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900";
+            scrapeStatusBox.textContent = `Sync ${result.status}: fetched ${result.fetched} reviews, added ${result.inserted} new (${result.duplicates} duplicates skipped). Dashboard refreshed!`;
+            showToast(`Added ${result.inserted} new reviews (${result.duplicates} duplicates skipped).`);
+          }
+        } catch (err) {
+          scrapeStatusBox.className = "rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900";
+          scrapeStatusBox.textContent = `Could not reach local FastAPI backend (${err.message}). Start it with: uvicorn backend.app:app --reload --port 8000`;
+        } finally {
+          runScrapeBtn.disabled = false;
+          runScrapeBtnText.textContent = "Scrape Latest Reviews";
+        }
+      });
+
+      const aiClassifyBtn = document.getElementById("aiClassifyBtn");
+      const aiClassifyBtnText = document.getElementById("aiClassifyBtnText");
+      aiClassifyBtn.addEventListener("click", async () => {
+        aiClassifyBtn.disabled = true;
+        aiClassifyBtnText.textContent = "Classifying with Gemini...";
+        try {
+          const params = new URLSearchParams({ max_reviews: "50" });
+          if (state.propertyId !== "all") params.set("property_id", state.propertyId);
+          const resp = await fetch(`/api/classify?${params.toString()}`, { method: "POST" });
+          const data = await resp.json();
+          if (!resp.ok) {
+            showToast(data.detail || `Gemini classification failed (HTTP ${resp.status}).`);
+          } else {
+            await syncFromBackend();
+            showToast(`Gemini + LangChain classified ${data.classified_count} reviews (${data.remaining_unclassified} remaining).`);
+          }
+        } catch (err) {
+          showToast(`Could not reach backend for Gemini classification: ${err.message}`);
+        } finally {
+          aiClassifyBtn.disabled = false;
+          aiClassifyBtnText.textContent = "AI Classify (Gemini)";
+        }
+      });
+
+      syncFromBackend();
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      if (window.lucide) window.lucide.createIcons();
+      initControls();
+      renderDashboard();
+    });
+  </script>
+</body>
+</html>
